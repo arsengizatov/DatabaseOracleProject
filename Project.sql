@@ -497,7 +497,66 @@ END;
 
 /*
 TESTING
-BEGIN
+BEGIN 
     DBMS_OUTPUT.PUT_LINE(get_clever_flow(10284, 'RUS 101'));
 END;
 */
+
+/*1) Find most popular courses for semester (You should pass a number of
+semester and year, and output list of courses with teachers )*/
+CREATE OR REPLACE PROCEDURE pro_top_subject(
+    p_ders_year IN NUMBER,
+    p_term  IN NUMBER) IS
+    CURSOR cur_top IS 
+        SELECT * FROM (
+            SELECT ders_kod, emp_id, COUNT(stud_id) as counts FROM (
+                SELECT DISTINCT cs.ders_kod, cs.emp_id, csh.stud_id, csh.section FROM course_sections cs
+                    INNER JOIN course_selections csh ON csh.section = cs.section AND csh.ders_kod = cs.ders_kod
+                    WHERE csh.ders_year = p_ders_year AND cs.ders_year = p_ders_year AND csh.terms = p_term)
+            GROUP BY ders_kod, emp_id
+            ORDER BY counts DESC)
+        WHERE ROWNUM <= 3;
+BEGIN
+    FOR v_record IN cur_top LOOP
+        DBMS_OUTPUT.PUT_LINE('Ders: ' || v_record.ders_kod || ', Teacher: ' || v_record.emp_id || ', Count: ' || v_record.counts);
+    END LOOP;
+END;
+
+/* TESTING
+BEGIN
+    pro_top_subject(2016,1);
+END;
+*/
+
+/*
+2) Find most popular teacher in section for semester (You should pass a
+number of semester and year and code of subject, and output teacher
+practice and lecture ) For example Programming technology lecture
+instructors: Instructor1, Instructor2. Practice instructors : Teacher1,teacher2,
+teacher3
+*/
+CREATE OR REPLACE PROCEDURE top_teachers(
+    p_ders_year IN NUMBER,
+    p_terms IN NUMBER,
+    p_ders_type IN course_sections.ders_type%TYPE) IS
+    CURSOR cur_top IS 
+        SELECT * FROM (
+            SELECT ders_kod, emp_id, ders_type, COUNT(stud_id) as counts FROM (
+                SELECT DISTINCT cs.ders_kod, cs.emp_id, csh.stud_id, csh.section, cs.ders_type FROM course_sections cs
+                    INNER JOIN course_selections csh ON csh.section = cs.section AND csh.ders_kod = cs.ders_kod
+                    WHERE csh.ders_year = p_ders_year AND cs.ders_year = p_ders_year AND csh.terms = p_terms AND cs.ders_type = p_ders_type)
+            GROUP BY ders_kod, emp_id, ders_type
+            ORDER BY counts DESC)
+        WHERE ROWNUM <= 3;    
+BEGIN
+    FOR v_record IN cur_top LOOP
+        DBMS_OUTPUT.PUT_LINE('Ders: ' || v_record.ders_kod || ', Teacher: ' || v_record.emp_id || ', Ders type: ' || v_record.ders_type || ', Count: ' || v_record.counts);
+    END LOOP;
+END;
+
+/* TESTING
+BEGIN
+    top_teachers(2016,1,'P');
+END;
+*/
+
